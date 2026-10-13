@@ -1,0 +1,9 @@
+[Unit]
+Description=Set CPU sustained power limit and burst window defaults
+
+[Service]
+Type=oneshot
+ExecStart=/bin/sh /usr/local/bin/set-rapl-limit.sh
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,2 @@
+SUBSYSTEM=="powercap", ACTION=="add|change", KERNEL=="intel-rapl-mmio:0", RUN+="/bin/sh -c 'chgrp wheel /sys%p/constraint_0_power_limit_uw /sys%p/constraint_0_time_window_us; chmod 664 /sys%p/constraint_0_power_limit_uw /sys%p/constraint_0_time_window_us'"
+SUBSYSTEM=="powercap", ACTION=="add|change", KERNEL=="intel-rapl:0", RUN+="/bin/sh -c 'chgrp wheel /sys%p/energy_uj; chmod 440 /sys%p/energy_uj'"

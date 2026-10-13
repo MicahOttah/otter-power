@@ -1,0 +1,15 @@
+{
+  "KPackageStructure": "Plasma/Applet",
+  "KPlugin": {
+    "Id": "io.github.micahottah.otterpower",
+    "Name": "Otter Power",
+    "Description": "Dell platform profiles, CPU power limits and presets via sysfs",
+    "Icon": "preferences-system-power-management",
+    "Category": "System Information",
+    "License": "GPL-2.0-or-later",
+    "Version": "0.2",
+    "Authors": [{ "Name": "MicahOttah" }],
+    "Website": "https://github.com/MicahOttah/otter-power"
+  },
+  "X-Plasma-API-Minimum-Version": "6.0"
+}

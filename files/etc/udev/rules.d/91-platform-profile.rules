@@ -1,0 +1,1 @@
+SUBSYSTEM=="platform-profile", ACTION=="add|change", RUN+="/bin/sh -c 'chgrp wheel /sys/firmware/acpi/platform_profile; chmod 664 /sys/firmware/acpi/platform_profile'"
