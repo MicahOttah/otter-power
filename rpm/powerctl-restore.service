@@ -1,0 +1,9 @@
+[Unit]
+Description=Restore saved power profile and CPU EPP
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/powerctl-restore
+
+[Install]
+WantedBy=default.target

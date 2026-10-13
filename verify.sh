@@ -5,6 +5,14 @@ bad=0
 chk() {
   if eval "$2" >/dev/null 2>&1; then echo "PASS  $1"; ok=$((ok+1)); else echo "FAIL  $1"; bad=$((bad+1)); fi
 }
+applet_ok() {
+  [ -d "/usr/share/plasma/plasmoids/$APPLET_ID" ] || kpackagetool6 -t Plasma/Applet -l 2>/dev/null | grep -q "$APPLET_ID"
+}
+readout() {
+  local r="$HOME/.local/bin/powerctl-read.sh"
+  [ -r "$r" ] || r=/usr/bin/powerctl-read
+  sh "$r"
+}
 
 chk "user is in wheel group" 'id -nG | tr " " "\n" | grep -qx wheel'
 chk "platform profile writable" '[ -w /sys/firmware/acpi/platform_profile ]'
@@ -15,8 +23,8 @@ chk "package energy readable" '[ -r /sys/class/powercap/intel-rapl:0/energy_uj ]
 chk "rapl-limit.service enabled" 'systemctl is-enabled rapl-limit.service'
 chk "powerctl-resume.service enabled" 'systemctl is-enabled powerctl-resume.service'
 chk "powerctl-restore.service enabled (user)" 'systemctl --user is-enabled powerctl-restore.service'
-chk "applet installed" "kpackagetool6 -t Plasma/Applet -l | grep -q $APPLET_ID"
-chk "read script prints 14 lines" '[ "$(sh $HOME/.local/bin/powerctl-read.sh | wc -l)" -eq 14 ]'
+chk "applet installed" applet_ok
+chk "read script prints 14 lines" '[ "$(readout | wc -l)" -eq 14 ]'
 
 if [ -r "$HOME/.config/powerctl/pl1" ]; then
   want=$(( $(cat "$HOME/.config/powerctl/pl1") * 1000000 ))

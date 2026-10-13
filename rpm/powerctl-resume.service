@@ -1,0 +1,10 @@
+[Unit]
+Description=Reapply EPP permissions, power limit and saved power settings after resume
+After=suspend.target hibernate.target hybrid-sleep.target
+
+[Service]
+Type=oneshot
+ExecStart=/bin/sh /usr/libexec/otter-power/resume.sh
+
+[Install]
+WantedBy=suspend.target hibernate.target hybrid-sleep.target
