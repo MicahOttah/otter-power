@@ -36,7 +36,7 @@ I am not responsible for any of the following:
 - Benchmarks that look worse than before you started
 - **Global thermonuclear war**
 
-Sea otters hold hands while they sleep so they don't drift apart. Your CPU, fans and heatsink have no such arrangement, which is why the numbers in this project are limits and not suggestions.
+Think of your laptop's firmware as a nervous parent with a strict curfew. This project quietly hands your CPU the car keys. The curfew exists for a reason, the neighbors (your heatsink) are already giving you looks, and the numbers in this project are limits, not suggestions.
 
 You chose to run this on your own hardware, and nobody forced you. If something goes wrong, please do not blame me or the otter. I will be sympathetic and I may even send a "that's rough, buddy", but I will not be liable.
 
