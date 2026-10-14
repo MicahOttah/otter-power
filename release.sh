@@ -17,10 +17,14 @@ esac
 EMAIL=$(git config user.email || true)
 [ -n "$EMAIL" ] || { echo "Set git user.email first."; exit 1; }
 [ -z "$(git status --porcelain)" ] || { echo "Uncommitted changes. Commit them first."; exit 1; }
-git fetch origin --tags
+git fetch origin
 git merge-base --is-ancestor origin/main HEAD || { echo "GitHub has commits you don't have. Pull first."; exit 1; }
 if git rev-parse -q --verify "refs/tags/v$VERSION" >/dev/null; then
-  echo "Tag v$VERSION already exists."
+  echo "Tag v$VERSION already exists locally."
+  exit 1
+fi
+if git ls-remote --exit-code --tags origin "refs/tags/v$VERSION" >/dev/null 2>&1; then
+  echo "Tag v$VERSION already exists on GitHub."
   exit 1
 fi
 
