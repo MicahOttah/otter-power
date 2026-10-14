@@ -67,12 +67,14 @@ The serious version, because the jokes are not a safety manual:
 - CPU sustained power limit: 55, 65, 75 or 80 W (`intel-rapl-mmio:0`, constraint 0)
 - CPU burst window: 10, 28 or 56 s
 - Presets that set all of the above together
+- Optional text on the panel icon: CPU temperature, package power or both
 
 **Monitoring**
 
 - Package power, CPU max clock, throttle count, battery state
 - GPU ceiling, temperature, power, load and VRAM (only queried while the GPU is awake, so it never wakes a sleeping card)
-- CPU, DIMM and NVMe temperatures, fan speeds
+- CPU, DIMM, NVMe and GPU temperatures, fan speeds
+- Temperatures turn amber and then red near their limits. The thresholds are in a `limits` block at the top of `main.qml`.
 
 **Persistence**
 
@@ -83,11 +85,33 @@ Your last choices are saved in `~/.config/powerctl/` and reapplied at login and 
 | Preset | Profile | EPP | CPU sustained limit | Burst window |
 |---|---|---|---|---|
 | Desk | cool | balance_power | 55 W | 28 s |
+| CPU work | cool | balance_performance | 80 W | 28 s |
 | Gaming | balanced | balance_performance | 80 W | 28 s |
 | Gaming max | performance | balance_performance | 80 W | 28 s |
 | AI run | balanced | balance_power | 65 W | 56 s |
 
 Edit the `presets` list near the top of `main.qml` to change these.
+
+## Other ways to install
+
+Each release on the Releases page has a source tarball, an RPM, a source RPM and a `SHA256SUMS` file.
+
+From the tarball:
+
+```bash
+tar xzf otter-power-VERSION.tar.gz
+cd otter-power-VERSION
+bash install.sh
+bash verify.sh
+```
+
+From the RPM, after removing any copy that was installed with `install.sh` (the two conflict):
+
+```bash
+sudo dnf install ./otter-power-VERSION-1.fc44.noarch.rpm
+```
+
+The RPM is unsigned. Check the download against `SHA256SUMS` first if you want to be careful.
 
 ## What the installer does
 
@@ -114,11 +138,12 @@ The helper scripts, services and settings folder keep the older `powerctl` name.
 These are observations from one machine, not guarantees.
 
 - The platform profile does more than cooling. The GPU power ceiling followed it: about 55 W in Cool and Quiet, 110 W in Balanced and about 122 W in Performance. In one game, frame rate scaled with the ceiling (roughly 25, 50 and 55 FPS).
-- The profiles also differ in fan policy. In Cool the fans keep spinning at idle. In Performance both fans stopped at idle and started late under a sudden load (the CPU reached 96 C before they responded).
+- The profiles also differ in fan policy. In Cool the fans keep spinning at idle. In Quiet, Balanced (one fan) and Performance the fans stop at idle. Under a sudden 4-core load, Cool was the only profile that stayed under 90 C. Quiet reached 99 C and Performance started its fans latest.
 - The CPU sustained limit that mattered was the `intel-rapl-mmio:0` zone, 55 W by default and the same in every profile. The `intel-rapl:0` zone sat at 85 W and was not the binding one.
 - A shorter burst window cut the time spent at 100 C at the start of a heavy load. At 85 W the CPU hovered around 76 W, so 80 W is the top option in the applet. I did not find out why.
 - The GPU power limit cannot be changed from the driver on this machine (`nvidia-smi -pl` is refused). The GPU ceiling shown in the applet is a lookup of the values measured above, not a live reading, and one reading of about 116 W did not match any profile.
 - Fan control through `dell-smm-hwmon` did not work: writes were accepted but ignored, and the firmware keeps its own fan curve. The applet does not offer fan control.
+- The BIOS sets SPD Write Disable on the memory bus, so the DIMM sensor driver logs resume failures after suspend, and `sensors` sometimes prints an alarm-register error. The DIMM temperature itself still works.
 
 ## Not covered
 
@@ -134,7 +159,7 @@ echo 56000000 | sudo tee /sys/class/powercap/intel-rapl-mmio:0/constraint_0_time
 echo cool > /sys/firmware/acpi/platform_profile
 ```
 
-To uninstall completely:
+To uninstall a script install completely:
 
 ```bash
 systemctl --user disable --now powerctl-restore.service
@@ -150,7 +175,15 @@ kpackagetool6 -t Plasma/Applet -r io.github.micahottah.otterpower
 rm -rf ~/plasmoids/io.github.micahottah.otterpower
 ```
 
-Reboot afterwards so the firmware defaults return.
+An RPM install is removed with `sudo dnf remove otter-power`. Reboot afterwards so the firmware defaults return.
+
+## Releasing (for maintainers)
+
+`release.sh` bumps the patch version, commits, tags, builds the tarball and RPMs, writes checksums, and creates a draft GitHub release:
+
+```bash
+./release.sh 0.2.2 "One line describing the change"
+```
 
 ## License
 

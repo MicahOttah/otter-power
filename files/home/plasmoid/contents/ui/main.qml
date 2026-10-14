@@ -11,12 +11,21 @@ PlasmoidItem {
     // Gap between columns and rows. Change this one line to tighten or loosen the layout.
     readonly property int gap: Kirigami.Units.smallSpacing * 2
 
+    // Warning thresholds in degrees C. Amber is a warning, red is serious.
+    readonly property var limits: ({
+        cpu:  { amber: 90, red: 97 },
+        dimm: { amber: 55, red: 70 },
+        gpu:  { amber: 85, red: 92 },
+        nvme: { amber: 70, red: 80 }
+    })
+
     readonly property string profilePath: "/sys/firmware/acpi/platform_profile"
     readonly property string eppGlob: "/sys/devices/system/cpu/cpu*/cpufreq/energy_performance_preference"
     readonly property string plPath: "/sys/class/powercap/intel-rapl-mmio:0/constraint_0_power_limit_uw"
     readonly property string twPath: "/sys/class/powercap/intel-rapl-mmio:0/constraint_0_time_window_us"
     readonly property var presets: [
         { name: "Desk",       profile: "cool",        epp: "balance_power",       w: 55, s: 28 },
+        { name: "CPU work",   profile: "cool",        epp: "balance_performance", w: 80, s: 28 },
         { name: "Gaming",     profile: "balanced",    epp: "balance_performance", w: 80, s: 28 },
         { name: "Gaming max", profile: "performance", epp: "balance_performance", w: 80, s: 28 },
         { name: "AI run",     profile: "balanced",    epp: "balance_power",       w: 65, s: 56 }
@@ -27,6 +36,12 @@ PlasmoidItem {
     property string currentEpp: ""
     property int plWatts: 0
     property int plWindow: 0
+    property string panelMode: "off"
+    property real cpuC: -1
+    property real gpuC: -1
+    property real dimmC: -1
+    property real nvmeC: -1
+    property real pkgW: -1
     property string cpuTemp: "n/a"
     property string gpuTemp: "n/a"
     property string dimmTemp: "n/a"
@@ -41,6 +56,28 @@ PlasmoidItem {
     property string gpuVram: "n/a"
     property real prevEnergy: -1
     property real prevTime: 0
+
+    readonly property int panelLevel: (panelMode === "cpu" || panelMode === "both") ? levelOf(cpuC, limits.cpu) : 0
+    readonly property string panelText: {
+        var parts = []
+        if ((panelMode === "cpu" || panelMode === "both") && cpuC >= 0)
+            parts.push(Math.round(cpuC) + "°")
+        if ((panelMode === "pkg" || panelMode === "both") && pkgW >= 0)
+            parts.push(Math.round(pkgW) + " W")
+        return parts.join(" ")
+    }
+
+    component TempLabel: PlasmaComponents.Label {
+        property int level: 0
+        color: level >= 2 ? Kirigami.Theme.negativeTextColor : (level === 1 ? Kirigami.Theme.neutralTextColor : Kirigami.Theme.textColor)
+    }
+
+    function levelOf(v, lim) {
+        if (v < 0) return 0
+        if (v >= lim.red) return 2
+        if (v >= lim.amber) return 1
+        return 0
+    }
 
     function cap(s) {
         s = s.replace(/_/g, " ")
@@ -77,20 +114,26 @@ PlasmoidItem {
             if (lines.length > 0 && lines[0].trim().length > 0)
                 root.currentProfile = lines[0].trim()
             var t = lines.length > 1 ? parseInt(lines[1]) : NaN
+            root.cpuC = isNaN(t) ? -1 : t / 1000
             root.cpuTemp = isNaN(t) ? "n/a" : Math.round(t / 1000) + " °C"
             var fans = lines.length > 2 ? lines[2].trim() : ""
             root.fanText = fans.length > 0 ? fans.split(/\s+/).map((v, i) => "F" + (i + 1) + ": " + v).join("  ") + " RPM" : "n/a"
             var gl = lines.length > 3 ? lines[3].trim() : ""
             var g = parseInt(gl)
-            if (gl === "asleep")
+            if (gl === "asleep") {
                 root.gpuTemp = "asleep"
-            else if (!isNaN(g))
+                root.gpuC = -1
+            } else if (!isNaN(g)) {
                 root.gpuTemp = g + " °C"
-            else if (root.expanded)
+                root.gpuC = g
+            } else if (root.expanded) {
                 root.gpuTemp = "n/a"
+                root.gpuC = -1
+            }
             if (lines.length > 4 && lines[4].trim().length > 0)
                 root.currentEpp = lines[4].trim()
             var dm = lines.length > 5 ? parseInt(lines[5]) : NaN
+            root.dimmC = isNaN(dm) ? -1 : dm / 1000
             root.dimmTemp = isNaN(dm) ? "n/a" : Math.round(dm / 1000) + " °C"
 
             var th = lines.length > 6 ? lines[6].trim() : ""
@@ -100,11 +143,14 @@ PlasmoidItem {
             var now = Date.now()
             if (isNaN(e)) {
                 root.pkgText = "n/a"
+                root.pkgW = -1
                 root.prevEnergy = -1
             } else {
                 var dt = now - root.prevTime
-                if (root.prevEnergy >= 0 && e >= root.prevEnergy && dt >= 500)
-                    root.pkgText = (((e - root.prevEnergy) / 1e6) / (dt / 1000)).toFixed(1) + " W"
+                if (root.prevEnergy >= 0 && e >= root.prevEnergy && dt >= 500) {
+                    root.pkgW = ((e - root.prevEnergy) / 1e6) / (dt / 1000)
+                    root.pkgText = root.pkgW.toFixed(1) + " W"
+                }
                 if (root.prevEnergy < 0 || dt >= 500) {
                     root.prevEnergy = e
                     root.prevTime = now
@@ -122,6 +168,7 @@ PlasmoidItem {
             var fq = lines.length > 9 ? parseInt(lines[9]) : NaN
             root.freqText = isNaN(fq) ? "n/a" : Math.round(fq / 1000) + " MHz"
             var nv = lines.length > 10 ? parseInt(lines[10]) : NaN
+            root.nvmeC = isNaN(nv) ? -1 : nv / 1000
             root.nvmeTemp = isNaN(nv) ? "n/a" : Math.round(nv / 1000) + " °C"
 
             var gd = lines.length > 11 ? lines[11].trim() : ""
@@ -146,6 +193,9 @@ PlasmoidItem {
             root.plWatts = isNaN(pl) ? 0 : Math.round(pl / 1e6)
             var tw = lines.length > 13 ? parseInt(lines[13]) : NaN
             root.plWindow = isNaN(tw) ? 0 : Math.round(tw / 1e6)
+
+            var pm = lines.length > 14 ? lines[14].trim() : ""
+            root.panelMode = (pm === "cpu" || pm === "pkg" || pm === "both") ? pm : "off"
         }
         function run(cmd) { connectSource(cmd) }
     }
@@ -168,6 +218,10 @@ PlasmoidItem {
 
     function setWindow(s) {
         exec.run("echo " + (s * 1000000) + " > " + twPath + "; mkdir -p $HOME/.config/powerctl; echo " + s + " > $HOME/.config/powerctl/pl1_window; " + readCmd)
+    }
+
+    function setPanelMode(m) {
+        exec.run("mkdir -p $HOME/.config/powerctl; echo " + m + " > $HOME/.config/powerctl/panel_text; " + readCmd)
     }
 
     function applyPreset(p, e, w, s) {
@@ -197,12 +251,29 @@ PlasmoidItem {
     toolTipMainText: "Power profile: " + cap(currentProfile)
     toolTipSubText: "CPU " + cpuTemp + "  |  GPU " + gpuTemp + "  |  DIMM " + dimmTemp + "  |  Fan " + fanText
 
-    compactRepresentation: Kirigami.Icon {
-        source: root.iconFor(root.currentProfile)
-        fallback: "preferences-system-power-management"
-        MouseArea {
+    compactRepresentation: MouseArea {
+        id: compact
+        Layout.minimumWidth: row.implicitWidth
+        Layout.preferredWidth: row.implicitWidth
+        onClicked: root.expanded = !root.expanded
+
+        RowLayout {
+            id: row
             anchors.fill: parent
-            onClicked: root.expanded = !root.expanded
+            spacing: Kirigami.Units.smallSpacing
+
+            Kirigami.Icon {
+                Layout.fillHeight: true
+                Layout.preferredWidth: compact.height
+                source: root.iconFor(root.currentProfile)
+                fallback: "preferences-system-power-management"
+            }
+            TempLabel {
+                visible: root.panelText.length > 0
+                text: root.panelText
+                level: root.panelLevel
+                Layout.alignment: Qt.AlignVCenter
+            }
         }
     }
 
@@ -244,7 +315,7 @@ PlasmoidItem {
                     verticalAlignment: Text.AlignVCenter
                 }
                 PlasmaComponents.Label { text: "Ceiling: " + root.gpuCeiling(root.currentProfile) }
-                PlasmaComponents.Label { text: "Temp: " + root.gpuTemp }
+                TempLabel { text: "Temp: " + root.gpuTemp; level: root.levelOf(root.gpuC, root.limits.gpu) }
                 PlasmaComponents.Label { text: "Power: " + root.gpuPower }
                 PlasmaComponents.Label { text: "Load: " + root.gpuUtil }
                 PlasmaComponents.Label { text: "VRAM: " + root.gpuVram }
@@ -260,9 +331,9 @@ PlasmoidItem {
                     Layout.preferredHeight: Kirigami.Units.iconSizes.smallMedium
                     verticalAlignment: Text.AlignVCenter
                 }
-                PlasmaComponents.Label { text: "CPU temp: " + root.cpuTemp }
-                PlasmaComponents.Label { text: "DIMM temp: " + root.dimmTemp }
-                PlasmaComponents.Label { text: "NVMe temp: " + root.nvmeTemp }
+                TempLabel { text: "CPU temp: " + root.cpuTemp; level: root.levelOf(root.cpuC, root.limits.cpu) }
+                TempLabel { text: "DIMM temp: " + root.dimmTemp; level: root.levelOf(root.dimmC, root.limits.dimm) }
+                TempLabel { text: "NVMe temp: " + root.nvmeTemp; level: root.levelOf(root.nvmeC, root.limits.nvme) }
                 PlasmaComponents.Label { text: "Fan speed: " + root.fanText }
             }
 
@@ -404,6 +475,35 @@ PlasmoidItem {
                         onClicked: {
                             root.setWindow(modelData)
                             checked = Qt.binding(() => root.plWindow === modelData)
+                        }
+                    }
+                }
+            }
+
+            Kirigami.Separator { Layout.fillHeight: true }
+
+            ColumnLayout {
+                Layout.alignment: Qt.AlignTop
+                PlasmaComponents.Label {
+                    text: "Panel text"
+                    font.bold: true
+                    Layout.preferredHeight: Kirigami.Units.iconSizes.smallMedium
+                    verticalAlignment: Text.AlignVCenter
+                }
+                Repeater {
+                    model: [
+                        { label: "Off",           mode: "off" },
+                        { label: "CPU temp",      mode: "cpu" },
+                        { label: "Package power", mode: "pkg" },
+                        { label: "Both",          mode: "both" }
+                    ]
+                    PlasmaComponents.RadioButton {
+                        autoExclusive: false
+                        text: modelData.label
+                        checked: root.panelMode === modelData.mode
+                        onClicked: {
+                            root.setPanelMode(modelData.mode)
+                            checked = Qt.binding(() => root.panelMode === modelData.mode)
                         }
                     }
                 }

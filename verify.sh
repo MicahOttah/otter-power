@@ -24,7 +24,7 @@ chk "rapl-limit.service enabled" 'systemctl is-enabled rapl-limit.service'
 chk "powerctl-resume.service enabled" 'systemctl is-enabled powerctl-resume.service'
 chk "powerctl-restore.service enabled (user)" 'systemctl --user is-enabled powerctl-restore.service'
 chk "applet installed" applet_ok
-chk "read script prints 14 lines" '[ "$(readout | wc -l)" -eq 14 ]'
+chk "read script prints 15 lines" '[ "$(readout | wc -l)" -eq 15 ]'
 
 if [ -r "$HOME/.config/powerctl/pl1" ]; then
   want=$(( $(cat "$HOME/.config/powerctl/pl1") * 1000000 ))

@@ -74,5 +74,6 @@ done
 
 pl1=$(cat /sys/class/powercap/intel-rapl-mmio:0/constraint_0_power_limit_uw 2>/dev/null)
 tw=$(cat /sys/class/powercap/intel-rapl-mmio:0/constraint_0_time_window_us 2>/dev/null)
+ptxt=$(cat "$HOME/.config/powerctl/panel_text" 2>/dev/null)
 
-printf '%s\n' "$profile" "$cpu" "$fans" "$gpu" "$epp" "$dimm" "$thr" "$rapl" "$bat" "$freq" "$nvme" "$gpurest" "$pl1" "$tw"
+printf '%s\n' "$profile" "$cpu" "$fans" "$gpu" "$epp" "$dimm" "$thr" "$rapl" "$bat" "$freq" "$nvme" "$gpurest" "$pl1" "$tw" "$ptxt"
