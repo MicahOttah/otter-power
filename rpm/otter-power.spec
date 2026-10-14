@@ -1,7 +1,7 @@
 %global applet_id io.github.micahottah.otterpower
 
 Name:           otter-power
-Version:        0.2
+Version:        0.2.1
 Release:        1%{?dist}
 Summary:        Power and thermal control applet for the Dell Precision 7670 (KDE Plasma 6)
 License:        GPL-2.0-or-later
@@ -78,5 +78,8 @@ udevadm control --reload >/dev/null 2>&1 || :
 %{_userunitdir}/powerctl-restore.service
 
 %changelog
+* Wed Oct 14 2026 MicahOttah <quinn@lionspaws.net> - 0.2.1-1
+- Warning colors, optional panel text, new CPU work preset
+
 * Tue Oct 13 2026 MicahOttah - 0.2-1
 - Initial RPM package
