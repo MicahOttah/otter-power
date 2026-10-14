@@ -1,0 +1,85 @@
+name: Compatibility report
+description: Tell us how it works on a different laptop or setup
+title: "[Compat]: "
+labels: ["compatibility"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        This project was only tested on one Dell Precision 7670. A report from another machine, working or not, helps everyone.
+
+        Please do not paste serial numbers, service tags or other personal identifiers.
+  - type: checkboxes
+    id: disclaimer
+    attributes:
+      label: Before you start
+      options:
+        - label: I have read the disclaimer in the README and understand this changes power and thermal settings that the firmware normally owns.
+          required: true
+  - type: input
+    id: model
+    attributes:
+      label: Laptop model and BIOS version
+      placeholder: "Dell Precision 7770, BIOS 1.x.x"
+    validations:
+      required: true
+  - type: input
+    id: hardware
+    attributes:
+      label: CPU and GPU
+      placeholder: "Core i7-12800HX, RTX A3000"
+    validations:
+      required: true
+  - type: input
+    id: system
+    attributes:
+      label: Fedora version and kernel
+      description: Output of `cat /etc/fedora-release` and `uname -r`.
+    validations:
+      required: true
+  - type: dropdown
+    id: result
+    attributes:
+      label: Overall result
+      options:
+        - Works fully
+        - Works partly
+        - Does not work
+    validations:
+      required: true
+  - type: checkboxes
+    id: worked
+    attributes:
+      label: What worked
+      description: Tick everything that worked on your machine.
+      options:
+        - label: Platform profile buttons
+        - label: Energy Performance Preference
+        - label: Sustained power limit
+        - label: Burst window
+        - label: Temperature and fan readings
+        - label: Settings restored after login and resume
+  - type: textarea
+    id: sysfs
+    attributes:
+      label: What your machine exposes
+      description: |
+        Run these commands and paste the output below:
+
+            cat /sys/firmware/acpi/platform_profile_choices
+            ls /sys/class/powercap/
+            for d in /sys/class/hwmon/hwmon*; do echo "$d: $(cat $d/name)"; done
+      render: shell
+    validations:
+      required: true
+  - type: textarea
+    id: verify
+    attributes:
+      label: Output of verify.sh
+      description: Run `bash verify.sh` and paste the result.
+      render: shell
+  - type: textarea
+    id: notes
+    attributes:
+      label: Notes
+      description: Anything that behaved differently from the README.

@@ -1,0 +1,83 @@
+name: Bug report
+description: Something broke, looks wrong, or behaves oddly
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report this.
+
+        This project was only tested on one Dell Precision 7670, so details about your machine matter a lot.
+
+        If your laptop is physically hot enough to be alarming, shut it down and unplug it first. File the report afterwards.
+
+        Please do not paste serial numbers, service tags or other personal identifiers.
+  - type: checkboxes
+    id: disclaimer
+    attributes:
+      label: Before you start
+      options:
+        - label: I have read the disclaimer in the README and understand this changes power and thermal settings that the firmware normally owns.
+          required: true
+  - type: input
+    id: model
+    attributes:
+      label: Laptop model and BIOS version
+      placeholder: "Dell Precision 7670, BIOS 1.x.x"
+    validations:
+      required: true
+  - type: input
+    id: system
+    attributes:
+      label: Fedora version and kernel
+      description: Output of `cat /etc/fedora-release` and `uname -r`.
+      placeholder: "Fedora Linux 44, 7.2.9-201.fc44.x86_64"
+    validations:
+      required: true
+  - type: dropdown
+    id: install
+    attributes:
+      label: How did you install it?
+      options:
+        - install.sh from the tarball or git
+        - RPM
+        - Other or not sure
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Otter Power version
+      description: The release you installed, or the git commit.
+      placeholder: "0.2.1"
+    validations:
+      required: true
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened?
+      description: What did you do, what did you expect, and what happened instead?
+    validations:
+      required: true
+  - type: textarea
+    id: verify
+    attributes:
+      label: Output of verify.sh
+      description: Run `bash verify.sh` from the project folder (or the extracted tarball) and paste the result. It names any failing check.
+      render: shell
+    validations:
+      required: true
+  - type: textarea
+    id: readout
+    attributes:
+      label: What the applet is reading
+      description: Output of `sh ~/.local/bin/powerctl-read.sh | cat -n`. For an RPM install, use `/usr/bin/powerctl-read` instead of the script path.
+      render: shell
+    validations:
+      required: true
+  - type: textarea
+    id: extra
+    attributes:
+      label: Anything else
+      description: Temperatures, what you were running, whether it happens after suspend, error messages, screenshots.
