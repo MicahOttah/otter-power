@@ -13,7 +13,7 @@ bash install.sh
 bash verify.sh
 ```
 
-Then restart the panel and add the "Otter Power" widget:
+Then restart the panel and add the " Power" widget:
 
 ```bash
 plasmashell --replace >/dev/null 2>&1 & disown
@@ -38,7 +38,7 @@ I am not responsible for any of the following:
 
 Think of your laptop's firmware as a nervous parent with a strict curfew. This project quietly hands your CPU the car keys. The curfew exists for a reason, the neighbors (your heatsink) are already giving you looks, and the numbers in this project are limits, not suggestions.
 
-You chose to run this on your own hardware, and nobody forced you. If something goes wrong, please do not blame me or the otter. I will be sympathetic and I may even send a "that's rough, buddy", but I will not be liable.
+You chose to run this on your own hardware, and nobody forced you. If something goes wrong, please do not blame me. I will be sympathetic and I may even send a "that's rough, buddy", but I will not be liable.
 
 If you have any doubts, read the scripts before you run them. They are short, and everything this project does comes down to writing numbers into files under `/sys`. If a script does something you don't understand, that is a good reason not to run it.
 
