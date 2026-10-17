@@ -49,7 +49,11 @@ PlasmoidItem {
     property string fanText: "n/a"
     property string throttleText: "n/a"
     property string pkgText: "n/a"
-    property string battText: "n/a"
+    property string flowText: "n/a"
+    property string chargeText: "n/a"
+    property string mainsText: "n/a"
+    property int mainsLevel: 0
+    property string portsText: "none"
     property string freqText: "n/a"
     property string gpuPower: "n/a"
     property string gpuUtil: "n/a"
@@ -157,12 +161,22 @@ PlasmoidItem {
                 }
             }
 
+            // Battery: status|current|voltage|capacity
             var bp = lines.length > 8 ? lines[8].trim().split("|") : []
             if (bp.length >= 3 && bp[0].length > 0) {
                 var bw = (Math.abs(parseInt(bp[1])) * parseInt(bp[2])) / 1e12
-                root.battText = isNaN(bw) ? bp[0] : bp[0] + ", " + bw.toFixed(1) + " W"
+                if (isNaN(bw))
+                    root.flowText = bp[0]
+                else if (bp[0] === "Discharging")
+                    root.flowText = "↓ " + bw.toFixed(1) + " W out"
+                else if (bp[0] === "Charging")
+                    root.flowText = "↑ " + bw.toFixed(1) + " W in"
+                else
+                    root.flowText = "idle (" + bp[0].toLowerCase() + ")"
+                root.chargeText = (bp.length >= 4 && bp[3].length > 0) ? bp[3] + " %" : "n/a"
             } else {
-                root.battText = "n/a"
+                root.flowText = "n/a"
+                root.chargeText = "n/a"
             }
 
             var fq = lines.length > 9 ? parseInt(lines[9]) : NaN
@@ -196,6 +210,26 @@ PlasmoidItem {
 
             var pm = lines.length > 14 ? lines[14].trim() : ""
             root.panelMode = (pm === "cpu" || pm === "pkg" || pm === "both") ? pm : "off"
+
+            // Power source: mainsFlag|port:watts port:watts
+            var ps = lines.length > 15 ? lines[15].trim().split("|") : []
+            var ac = ps.length > 0 ? ps[0] : ""
+            var plist = (ps.length > 1 && ps[1].trim().length > 0) ? ps[1].trim().split(/\s+/) : []
+            var inputs = plist.map(p => { var a = p.split(":"); return "USB-C " + a[0] + ", " + a[1] + " W" })
+            // Mains accepted with no USB-C source online means the DC jack is supplying power
+            if (ac === "1" && inputs.length === 0)
+                inputs = ["DC jack"]
+            root.portsText = inputs.length > 0 ? inputs.join("  |  ") : "none"
+            if (ac === "1") {
+                root.mainsText = "Accepted"
+                root.mainsLevel = 0
+            } else if (plist.length > 0) {
+                root.mainsText = "Not accepted"
+                root.mainsLevel = 1
+            } else {
+                root.mainsText = "On battery"
+                root.mainsLevel = 0
+            }
         }
         function run(cmd) { connectSource(cmd) }
     }
@@ -301,7 +335,22 @@ PlasmoidItem {
                 PlasmaComponents.Label { text: "Package power: " + root.pkgText }
                 PlasmaComponents.Label { text: "CPU max clock: " + root.freqText }
                 PlasmaComponents.Label { text: "Throttle events: " + root.throttleText }
-                PlasmaComponents.Label { text: "Battery: " + root.battText }
+            }
+
+            Kirigami.Separator { Layout.fillHeight: true }
+
+            ColumnLayout {
+                Layout.alignment: Qt.AlignTop
+                PlasmaComponents.Label {
+                    text: "Power source"
+                    font.bold: true
+                    Layout.preferredHeight: Kirigami.Units.iconSizes.smallMedium
+                    verticalAlignment: Text.AlignVCenter
+                }
+                TempLabel { text: "Mains: " + root.mainsText; level: root.mainsLevel }
+                PlasmaComponents.Label { text: "Input: " + root.portsText }
+                PlasmaComponents.Label { text: "Battery: " + root.flowText }
+                PlasmaComponents.Label { text: "Charge: " + root.chargeText }
             }
 
             Kirigami.Separator { Layout.fillHeight: true }

@@ -60,7 +60,7 @@ done
 bat=""
 b=/sys/class/power_supply/BAT0
 if [ -r "$b/status" ]; then
-  bat="$(cat "$b/status" 2>/dev/null)|$(cat "$b/current_now" 2>/dev/null)|$(cat "$b/voltage_now" 2>/dev/null)"
+  bat="$(cat "$b/status" 2>/dev/null)|$(cat "$b/current_now" 2>/dev/null)|$(cat "$b/voltage_now" 2>/dev/null)|$(cat "$b/capacity" 2>/dev/null)"
 fi
 
 freq=$(cat /sys/devices/system/cpu/cpu*/cpufreq/scaling_cur_freq 2>/dev/null | sort -n | tail -1)
@@ -76,4 +76,17 @@ pl1=$(cat /sys/class/powercap/intel-rapl-mmio:0/constraint_0_power_limit_uw 2>/d
 tw=$(cat /sys/class/powercap/intel-rapl-mmio:0/constraint_0_time_window_us 2>/dev/null)
 ptxt=$(cat "$HOME/.config/powerctl/panel_text" 2>/dev/null)
 
-printf '%s\n' "$profile" "$cpu" "$fans" "$gpu" "$epp" "$dimm" "$thr" "$rapl" "$bat" "$freq" "$nvme" "$gpurest" "$pl1" "$tw" "$ptxt"
+# Power source: mains flag, then each online USB-C source as port:watts (negotiated rating)
+ac=$(cat /sys/class/power_supply/AC/online 2>/dev/null)
+src=""
+for d in /sys/class/power_supply/ucsi-source-psy-*; do
+  [ -d "$d" ] || continue
+  [ "$(cat "$d/online" 2>/dev/null)" = "1" ] || continue
+  port=$(echo "${d##*:}" | sed 's/^0*//')
+  [ -n "$port" ] || port=0
+  w=$(awk -v v="$(cat "$d/voltage_max" 2>/dev/null || echo 0)" -v i="$(cat "$d/current_max" 2>/dev/null || echo 0)" 'BEGIN{printf "%d", v*i/1e12+0.5}')
+  src="$src $port:$w"
+done
+psrc="$ac|${src# }"
+
+printf '%s\n' "$profile" "$cpu" "$fans" "$gpu" "$epp" "$dimm" "$thr" "$rapl" "$bat" "$freq" "$nvme" "$gpurest" "$pl1" "$tw" "$ptxt" "$psrc"
