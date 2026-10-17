@@ -108,7 +108,7 @@ sudo cat /sys/kernel/debug/pmc_core/slp_s0_residency_usec
 
 Both should rise by roughly the time the machine slept, in microseconds. If they barely move, something is still keeping the machine partly awake.
 
-USB devices can still wake the machine, so unplug a mouse or wireless dongle before putting the laptop in a bag.
+USB devices can still wake the machine. If you use a wireless mouse, switch it off before packing everything into your bag, and unplug any wired one, so a bump in transit doesn't wake the laptop.
 
 ## Things that did not help
 
