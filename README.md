@@ -2,7 +2,7 @@
 
 ![Otter Power popup](docs/screenshot.png)
 
-A KDE Plasma 6 panel widget for the Dell Precision 7670 on Fedora. It switches the Dell platform profile, CPU energy preference, CPU sustained power limit and burst window, with one-click presets, and shows live temperatures, fan speeds and power draw.
+A KDE Plasma 6 panel widget for the Dell Precision 7670 on Fedora. It switches the Dell platform profile, CPU energy preference, CPU sustained power limit and burst window, with one-click presets, and shows live temperatures, fan speeds, power draw and where the machine is getting its power from.
 
 ## Quick start
 
@@ -13,7 +13,7 @@ bash install.sh
 bash verify.sh
 ```
 
-Then restart the panel and add the " Power" widget:
+Then restart the panel and add the "Otter Power" widget:
 
 ```bash
 plasmashell --replace >/dev/null 2>&1 & disown
@@ -38,7 +38,7 @@ I am not responsible for any of the following:
 
 Think of your laptop's firmware as a nervous parent with a strict curfew. This project quietly hands your CPU the car keys. The curfew exists for a reason, the neighbors (your heatsink) are already giving you looks, and the numbers in this project are limits, not suggestions.
 
-You chose to run this on your own hardware, and nobody forced you. If something goes wrong, please do not blame me. I will be sympathetic and I may even send a "that's rough, buddy", but I will not be liable.
+You chose to run this on your own hardware, and nobody forced you. If something goes wrong, please do not blame me or the otter. I will be sympathetic and I may even send a "that's rough, buddy", but I will not be liable.
 
 If you have any doubts, read the scripts before you run them. They are short, and everything this project does comes down to writing numbers into files under `/sys`. If a script does something you don't understand, that is a good reason not to run it.
 
@@ -54,7 +54,7 @@ The serious version, because the jokes are not a safety manual:
 
 ## Tested on
 
-- Dell Precision 7670, Intel 12th gen Core i9 (HX), NVIDIA RTX A4500 Laptop GPU (16 GB)
+- Dell Precision 7670, BIOS 1.40, Intel 12th gen Core i9 (HX), NVIDIA RTX A4500 Laptop GPU (16 GB)
 - Fedora 44, KDE Plasma 6 on Wayland, kernel 7.2.x
 - NVIDIA open kernel modules from RPM Fusion (not required for the applet itself)
 
@@ -71,14 +71,21 @@ The serious version, because the jokes are not a safety manual:
 
 **Monitoring**
 
-- Package power, CPU max clock, throttle count, battery state
-- GPU ceiling, temperature, power, load and VRAM (only queried while the GPU is awake, so it never wakes a sleeping card)
-- CPU, DIMM, NVMe and GPU temperatures, fan speeds
+- Power and load: package power, CPU max clock, throttle count
+- Power source: whether the firmware accepts mains power, the input in use (the DC jack, or each live USB-C port with its negotiated rating), battery watts in or out, and charge percentage
+- GPU: power ceiling, temperature, power, load and VRAM (only queried while the GPU is awake, so it never wakes a sleeping card)
+- Sensors: CPU, DIMM and NVMe temperatures, fan speeds
 - Temperatures turn amber and then red near their limits. The thresholds are in a `limits` block at the top of `main.qml`.
+
+USB-C ratings are the contract the port negotiated, not a live measurement. The port numbers are the kernel's connector numbers, which may not match the physical port order, so plug a charger into each port once to learn the mapping.
 
 **Persistence**
 
 Your last choices are saved in `~/.config/powerctl/` and reapplied at login and after suspend and resume.
+
+**No root at runtime**
+
+The applet runs as your user. The installer grants the `wheel` group write access to the few files it controls, through udev rules and tmpfiles entries, so nothing asks for a password while you use it.
 
 ## Presets
 
@@ -143,11 +150,21 @@ These are observations from one machine, not guarantees.
 - A shorter burst window cut the time spent at 100 C at the start of a heavy load. At 85 W the CPU hovered around 76 W, so 80 W is the top option in the applet. I did not find out why.
 - The GPU power limit cannot be changed from the driver on this machine (`nvidia-smi -pl` is refused). The GPU ceiling shown in the applet is a lookup of the values measured above, not a live reading, and one reading of about 116 W did not match any profile.
 - Fan control through `dell-smm-hwmon` did not work: writes were accepted but ignored, and the firmware keeps its own fan curve. The applet does not offer fan control.
+- Small USB-C chargers are not accepted as mains power. A 45 W USB-C PD supply negotiated a contract, but the firmware kept running from the battery. The 240 W adapter goes in through the DC jack. The Power source column shows "Not accepted" in amber when this happens.
+- Suspend woke immediately because the touchpad is enabled as a wake source. Disabling its wake capability fixed it. See the sleep notes below.
 - The BIOS sets SPD Write Disable on the memory bus, so the DIMM sensor driver logs resume failures after suspend, and `sensors` sometimes prints an alarm-register error. The DIMM temperature itself still works.
+
+## Related notes
+
+- [Dell Precision 7670: sleep on Linux](docs/precision-7670-sleep.md) covers why S3 sleep is missing, how to find what wakes the machine, the touchpad wake fix, and how to check that suspend really saves power.
 
 ## Not covered
 
 Hardware and driver setup is separate and depends on your release: the NVIDIA driver, GPU runtime power management, `thermald`, tuned profiles, kernel arguments and BIOS settings.
+
+## Reporting problems
+
+Use the issue forms on the Issues page. There is a bug report form, and a compatibility report form for telling us how it works on a different laptop. Reports from other models are especially welcome, since this has only been tested on one machine. Please don't post serial numbers or service tags.
 
 ## Revert and uninstall
 
@@ -182,7 +199,7 @@ An RPM install is removed with `sudo dnf remove otter-power`. Reboot afterwards 
 `release.sh` bumps the patch version, commits, tags, builds the tarball and RPMs, writes checksums, and creates a draft GitHub release:
 
 ```bash
-./release.sh 0.2.2 "One line describing the change"
+./release.sh 0.2.3 "One line describing the change"
 ```
 
 ## License
